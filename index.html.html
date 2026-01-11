@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>健康食物選選看 - 橙色活力版</title>
+    <style>
+        :root {
+            --correct-color: #2e7d32;
+            --wrong-color: #d32f2f;
+            /* 更新為橙色漸變背景 */
+            --orange-gradient: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #000; /* 遊戲主背景為黑色 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 封面 / 開始畫面 (橙色漸變) */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--orange-gradient); 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        #start-screen h1 {
+            color: white; /* 封面題目改為白色 */
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            margin-bottom: 50px;
+            font-size: 5rem;
+        }
+
+        #start-btn {
+            padding: 40px 100px;
+            font-size: 5rem;
+            background: #fff;
+            color: #E65100; /* 橙色文字按鈕 */
+            border: none;
+            border-radius: 120px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        /* 題目框 */
+        #header {
+            background: #fff;
+            padding: 20px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        #header h1 { margin: 0; font-size: 3.5rem; color: #000; }
+
+        /* 遊戲區域 */
+        #game-stage {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border: 15px solid #fff;
+            border-radius: 60px;
+            width: 45%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 40px rgba(255,255,255,0.15);
+        }
+
+        .emoji { font-size: 20rem; line-height: 1; }
+        .food-name { font-size: 4rem; font-weight: bold; margin-top: 20px; color: #333; }
+
+        /* 反饋層 */
+        #feedback-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+        }
+
+        /* 80% 大白框 */
+        #feedback-box {
+            width: 80%;
+            height: 80%; 
+            border-radius: 80px;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 0 120px rgba(0,0,0,0.6);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #feedback-icon { font-size: 26rem; line-height: 1.1; margin: 0; }
+        #feedback-text { font-size: 3.5rem; font-weight: bold; margin-top: 10px; }
+
+        @media (max-width: 1024px) {
+            #start-screen h1 { font-size: 3.5rem; }
+            #start-btn { font-size: 3.5rem; padding: 30px 80px; }
+            #header h1 { font-size: 2.2rem; }
+            .emoji { font-size: 12rem; }
+            .food-name { font-size: 2.5rem; }
+            #game-stage { flex-direction: column; }
+            .card { width: 90%; height: 40%; }
+            #feedback-icon { font-size: 15rem; }
+            #feedback-box { width: 90%; height: 75%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>健康食物選選看</h1>
+        <button id="start-btn">開始遊戲</button>
+    </div>
+
+    <div id="feedback-overlay">
+        <div id="feedback-box">
+            <div id="feedback-icon"></div>
+            <div id="feedback-text"></div>
+        </div>
+    </div>
+
+    <div id="header">
+        <h1>邊樣係健康食物？</h1>
+    </div>
+
+    <div id="game-stage">
+        <div id="left-card" class="card">
+            <div id="l-emoji" class="emoji"></div>
+            <div id="l-name" class="food-name"></div>
+        </div>
+        <div id="right-card" class="card">
+            <div id="r-emoji" class="emoji"></div>
+            <div id="r-name" class="food-name"></div>
+        </div>
+    </div>
+
+    <script>
+        const fruits = [
+            { n: '橙', e: '🍊' }, { n: '蘋果', e: '🍎' }, { n: '梨', e: '🍐' },
+            { n: '香蕉', e: '🍌' }, { n: '提子', e: '🍇' }
+        ];
+        const snacks = [
+            { n: '薯條', e: '🍟' }, { n: '糖果', e: '🍬' }, { n: '雪糕', e: '🍦' },
+            { n: '蛋糕', e: '🍰' }, { n: '漢堡包', e: '🍔' }
+        ];
+
+        let state = { fruitPos: 'left' };
+        let synth = window.speechSynthesis;
+
+        function speak(text) {
+            synth.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'zh-HK';
+            utter.rate = 0.95;
+            synth.speak(utter);
+        }
+
+        // 開始按鈕點擊
+        document.getElementById('start-btn').addEventListener('click', function() {
+            speak("邊樣係健康食物？");
+            document.getElementById('start-screen').style.display = 'none';
+            newRound();
+        });
+
+        // 隨機生成新題目
+        function newRound() {
+            const f = fruits[Math.floor(Math.random() * fruits.length)];
+            const s = snacks[Math.floor(Math.random() * snacks.length)];
+            state.fruitPos = Math.random() > 0.5 ? 'left' : 'right';
+
+            if(state.fruitPos === 'left') {
+                updateCard('l', f);
+                updateCard('r', s);
+            } else {
+                updateCard('l', s);
+                updateCard('r', f);
+            }
+            // 延遲播放聲音，確保視覺先加載
+            setTimeout(() => speak("邊樣係健康食物？"), 600);
+        }
+
+        function updateCard(side, data) {
+            document.getElementById(`${side}-emoji`).textContent = data.e;
+            document.getElementById(`${side}-name`).textContent = data.n;
+        }
+
+        // 判斷對錯
+        function handleSelect(choice) {
+            const isCorrect = choice === state.fruitPos;
+            const overlay = document.getElementById('feedback-overlay');
+            const icon = document.getElementById('feedback-icon');
+            const txt = document.getElementById('feedback-text');
+
+            overlay.style.display = 'flex';
+
+            if(isCorrect) {
+                icon.style.color = "var(--correct-color)";
+                icon.textContent = "✔️"; 
+                txt.style.color = "var(--correct-color)";
+                txt.textContent = "答對了，做得好！";
+                speak("答對了，做得好！");
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    newRound();
+                }, 1500);
+            } else {
+                icon.style.color = "var(--wrong-color)";
+                icon.textContent = "❌";
+                txt.style.color = "var(--wrong-color)";
+                txt.textContent = "答錯了，請加油！";
+                speak("答錯了，請加油！");
+
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 1500);
+            }
+        }
+
+        // 綁定事件
+        document.getElementById('left-card').addEventListener('click', () => handleSelect('left'));
+        document.getElementById('right-card').addEventListener('click', () => handleSelect('right'));
+
+        // 鍵盤操控 (選配)
+        document.addEventListener('keydown', (e) => {
+            if(document.getElementById('feedback-overlay').style.display === 'flex') return;
+            if(e.key === "ArrowLeft") handleSelect('left');
+            if(e.key === "ArrowRight") handleSelect('right');
+        });
+    </script>
+</body>
+</html>
